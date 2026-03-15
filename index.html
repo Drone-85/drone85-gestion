@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#1A1B1E">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Drone85 Gestion</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#F8F9FA;--surface:#FFF;--border:#DEE2E6;--text:#212529;--text2:#6C757D;--text3:#ADB5BD;--pri:#3B5BDB;--pri2:#DBE4FF;--ok:#2B8A3E;--err:#C92A2A;--warn:#E67700;--r:8px;--font:'DM Sans',system-ui,sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.5}
+a{color:var(--pri);text-decoration:none}
+/* Layout */
+.wrap{display:flex;min-height:100vh}
+.side{width:220px;background:#1A1B1E;color:#909296;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:90}
+.side-brand{padding:18px 14px;border-bottom:1px solid #2C2E33;display:flex;align-items:center;gap:8px}
+.side-brand b{color:#fff;font-size:14px;letter-spacing:-.3px}
+.side-dot{width:8px;height:8px;border-radius:50%;background:var(--pri)}
+.side-nav{flex:1;padding:10px 6px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-bottom:1px;transition:.15s;position:relative}
+.nav-item:hover{background:#25262B;color:#C1C2C5}
+.nav-item.act{background:rgba(59,91,219,.15);color:#748FFC}
+.nav-badge{position:absolute;right:8px;background:var(--err);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:700}
+.side-sect{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#5C5F66;padding:10px 14px 4px}
+.side-ent{padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;margin:0 6px 2px;transition:.15s}
+.side-ent:hover{background:#25262B}
+.side-ent.sel{background:rgba(116,143,252,.12);color:#748FFC}
+.main-area{margin-left:220px;flex:1}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar h2{font-size:17px;font-weight:700}
+.top-right{display:flex;gap:8px;align-items:center}
+.page{padding:20px 24px;max-width:1200px}
+/* Bottom bar mobile */
+.btm{display:none;position:fixed;bottom:0;left:0;right:0;background:#1A1B1E;border-top:1px solid #2C2E33;z-index:90;padding-bottom:env(safe-area-inset-bottom)}
+.btm-in{display:flex;height:56px;align-items:center;justify-content:space-around}
+.btm-i{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:600;color:#5C5F66;cursor:pointer;padding:4px 8px}
+.btm-i.act{color:#748FFC}
+@media(max-width:767px){.side{display:none}.main-area{margin-left:0;padding-bottom:70px}.btm{display:block}.page{padding:14px}.topbar{padding:10px 14px}.topbar h2{font-size:15px}.form-r,.form-r3{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+/* Components */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-t{font-size:13px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.stat-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.stat-v{font-size:24px;font-weight:700;margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:6px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);transition:.15s}
+.btn-p{background:var(--pri);color:#fff}.btn-p:hover{background:#364FC7}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-er{background:var(--err);color:#fff}
+.btn-o{background:none;border:1px solid var(--border);color:var(--text)}.btn-o:hover{background:var(--bg)}
+.btn-g{background:none;color:var(--text2);border:none}.btn-g:hover{color:var(--text)}
+.btn-s{padding:4px 9px;font-size:11px}
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.fi{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-size:13.5px;font-family:var(--font);background:#fff}
+.fi:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri2)}
+.ft{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--font);resize:vertical;min-height:70px}
+.form-r{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.sect{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #E9ECEF}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:2px solid var(--border);background:var(--bg)}
+td{padding:8px 10px;border-bottom:1px solid #E9ECEF}
+tr:hover td{background:#FAFAFA}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:12px;font-size:10.5px;font-weight:600}
+.badge .dot{width:5px;height:5px;border-radius:50%}
+.etag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.3px}
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+.modal-box{background:#fff;border-radius:10px;width:100%;max-width:760px;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{font-size:15px;font-weight:700}
+.modal-body{padding:18px;max-height:65vh;overflow-y:auto}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:6px}
+@media(max-width:767px){.modal-bg{padding:0;align-items:flex-end}.modal-box{border-radius:12px 12px 0 0;max-height:90vh}}
+/* Address */
+.addr-wrap{position:relative}
+.addr-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;box-shadow:0 4px 12px rgba(0,0,0,.08);z-index:100;max-height:180px;overflow-y:auto}
+.addr-opt{padding:8px 11px;cursor:pointer;font-size:12.5px;border-bottom:1px solid #F1F3F5}
+.addr-opt:hover{background:var(--pri2)}
+.addr-main{font-weight:600}.addr-sub{font-size:11px;color:var(--text2)}
+/* Map */
+.map-box{height:380px;border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
+@media(max-width:767px){.map-box{height:280px}}
+/* Auth */
+.auth-bg{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1A1B1E,#2C2E33);padding:20px}
+.auth-box{background:#fff;border-radius:10px;padding:36px;width:100%;max-width:380px}
+.auth-box h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.auth-box p{font-size:13px;color:var(--text2);margin-bottom:20px}
+.line-row{display:grid;grid-template-columns:3fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #F1F3F5;font-size:12.5px}
+@media(max-width:767px){.line-row{grid-template-columns:1fr;gap:4px}}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:#1A1B1E;color:#fff;padding:9px 18px;border-radius:8px;font-size:12.5px;font-weight:600;z-index:300}
+.tpl-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--bg);border:1px solid var(--border);cursor:pointer;margin:0 4px 4px 0}
+.tpl-btn:hover{border-color:var(--pri);color:var(--pri)}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+</style>
+</head>
+<body>
+<div id="app">Chargement...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
+
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+var SUPABASE_URL='https://pomlfseukliepmxmbetg.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvbWxmc2V1a2xpZXBteG1iZXRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjQ5NDcsImV4cCI6MjA4ODU0MDk0N30.nJvIUkXVzGbYeYfposu2LS5Z8iAjEoNqHIK4WP1L-tw';
+var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// ================================================================
+// STATE
+// ================================================================
+var S={
+  user:null,view:'dashboard',filter:'all',search:'',modal:null,
+  ents:[],svcs:[],cons:[],tpls:[],devis:[],lines:[]
+};
+
+// ================================================================
+// HELPERS
+// ================================================================
+var SL={draft:'Brouillon',sent:'Envoyé',accepted:'Accepté',rejected:'Refusé',scheduled:'Planifié',flight_requested:'Vol demandé',flight_approved:'Vol approuvé',completed:'Réalisé',invoiced:'Facturé'};
+var SC={draft:'#868E96',sent:'#1C7ED6',accepted:'#2B8A3E',rejected:'#C92A2A',scheduled:'#E67700',flight_requested:'#9C36B5',flight_approved:'#0CA678',completed:'#2B8A3E',invoiced:'#495057'};
+
+function fDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function fEuro(n){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n||0)}
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function statusHtml(s){var c=SC[s]||'#868E96';return '<span class="badge" style="background:'+c+'18;color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+SL[s]+'<\/span>'}
+function etagHtml(eid){var e=S.ents.find(function(x){return x.id===eid});if(!e)return'';return '<span class="etag" style="background:'+e.color+'15;color:'+e.color+'">'+esc(e.name)+'<\/span>'}
+function toast(m){var t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(function(){t.remove()},2500)}
+function $(id){return document.getElementById(id)}
+function $v(id){var el=$(id);return el?el.value:''}
+
+// ================================================================
+// DATA
+// ================================================================
+async function loadAll(){
+  var [e,s,c,t,d]=await Promise.all([
+    sb.from('entities').select('*'),
+    sb.from('services').select('*').order('sort_order'),
+    sb.from('consumables').select('*').order('sort_order'),
+    sb.from('templates').select('*').order('sort_order'),
+    sb.from('devis').select('*').order('created_at',{ascending:false})
+  ]);
+  S.ents=e.data||[];S.svcs=s.data||[];S.cons=c.data||[];S.tpls=t.data||[];S.devis=d.data||[];
+}
+async function loadLines(did){var r=await sb.from('devis_lines').select('*').eq('devis_id',did).order('sort_order');return r.data||[]}
+
+// ================================================================
+// AUTH
+// ================================================================
+function renderAuth(){
+  $('app').innerHTML=
+    '<div class="auth-bg"><div class="auth-box">'+
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:10px;height:10px;border-radius:50%;background:var(--pri)"><\/div><span style="font-size:11px;font-weight:700;color:#868E96;text-transform:uppercase;letter-spacing:1px">Gestion Clients<\/span><\/div>'+
+    '<h1>Connexion<\/h1><p>Accédez à votre espace<\/p>'+
+    '<div class="fg"><label class="fl">Email<\/label><input class="fi" id="a-email" type="email"><\/div>'+
+    '<div class="fg"><label class="fl">Mot de passe<\/label><input class="fi" id="a-pwd" type="password"><\/div>'+
+    '<div id="a-err" style="color:var(--err);font-size:12px;margin-bottom:10px"><\/div>'+
+    '<button class="btn btn-p" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">Se connecter<\/button>'+
+    '<\/div><\/div>';
+}
+
+async function doLogin(){
+  $('a-err').textContent='';
+  var r=await sb.auth.signInWithPassword({email:$v('a-email'),password:$v('a-pwd')});
+  if(r.error){$('a-err').textContent=r.error.message;return}
+  S.user=r.data.user;
+  await loadAll();
+  render();
+}
+
+// ================================================================
+// LAYOUT
+// ================================================================
+var NAV=[
+  {id:'dashboard',l:'Tableau de bord',sl:'Accueil',ico:'⌂'},
+  {id:'devis',l:'Devis',sl:'Devis',ico:'📄'},
+  {id:'planning',l:'Planning',sl:'Planning',ico:'📅'},
+  {id:'flights',l:'Notif. vol',sl:'Vols',ico:'✈'},
+  {id:'mapview',l:'Carte',sl:'Carte',ico:'📍'},
+  {id:'invoices',l:'Factures',sl:'Factures',ico:'💶'},
+  {id:'reminders',l:'Rappels',sl:'Rappels',ico:'🔔'},
+  {id:'catalog',l:'Catalogue',sl:'Catalogue',ico:'📖'}
+];
+
+function render(){
+  if(!S.user){renderAuth();return}
+  var fd=filteredDevis();
+  var cnt=counts(fd);
+  var navH='';NAV.forEach(function(n){
+    var b=n.id==='devis'?cnt.draft:n.id==='flights'?cnt.flights:n.id==='invoices'?cnt.toInv:n.id==='reminders'?cnt.reminders:0;
+    navH+='<div class="nav-item'+(S.view===n.id?' act':'')+'" onclick="go(\''+n.id+'\')">'
+      +'<span>'+n.ico+'<\/span><span>'+n.l+'<\/span>'
+      +(b>0?'<span class="nav-badge">'+b+'<\/span>':'')+'<\/div>';
+  });
+  var entH='<div class="side-ent'+(S.filter==='all'?' sel':'')+'" onclick="setFilter(\'all\')">Toutes<\/div>';
+  S.ents.forEach(function(e){
+    entH+='<div class="side-ent'+(S.filter===e.id?' sel':'')+'" style="'+(S.filter===e.id?'color:'+e.color:'') +'" onclick="setFilter(\''+e.id+'\')">'+esc(e.name)+'<\/div>';
+  });
+
+  var vt={dashboard:'Tableau de bord',devis:'Devis',planning:'Planning',flights:'Notifications vol',mapview:'Carte',invoices:'Factures',reminders:'Rappels',catalog:'Catalogue'};
+  var topRight='';
+  if(S.view==='devis')topRight='<input class="fi" style="width:200px;font-size:12px;padding:6px 10px" placeholder="Rechercher..." oninput="S.search=this.value;render()" value="'+esc(S.search)+'"> <button class="btn btn-p btn-s" onclick="openDevisForm()">+ Nouveau<\/button>';
+
+  var mobileNav='';[0,1,2,4,7].forEach(function(i){var n=NAV[i];
+    mobileNav+='<div class="btm-i'+(S.view===n.id?' act':'')+'" onclick="go(\''+n.id+'\')"><span style="font-size:18px">'+n.ico+'<\/span><span>'+n.sl+'<\/span><\/div>';
+  });
+
+  $('app').innerHTML=
+    '<div class="wrap">'+
+    '<aside class="side"><div class="side-brand"><div class="side-dot"><\/div><b>GESTION CLIENTS<\/b><\/div>'+
+    '<div class="side-nav">'+navH+'<\/div>'+
+    '<div class="side-sect">Structure<\/div>'+entH+
+    '<div style="padding:8px 6px;margin-top:auto;border-top:1px solid #2C2E33"><div class="nav-item" onclick="doLogout()">🚪 <span>Déconnexion<\/span><\/div><\/div>'+
+    '<\/aside>'+
+    '<div class="main-area">'+
+    '<div class="topbar"><h2>'+vt[S.view]+'<\/h2><div class="top-right">'+topRight+'<\/div><\/div>'+
+    '<div class="page" id="page"><\/div>'+
+    '<\/div>'+
+    '<nav class="btm"><div class="btm-in">'+mobileNav+'<\/div><\/nav>'+
+    '<\/div>';
+
+  // Render page content
+  var p=$('page');
+  if(S.view==='dashboard')renderDash(p,fd,cnt);
+  else if(S.view==='devis')renderDevisList(p,fd);
+  else if(S.view==='planning')renderPlanning(p,fd);
+  else if(S.view==='flights')renderFlights(p,fd);
+  else if(S.view==='mapview')renderMap(p,fd);
+  else if(S.view==='invoices')renderInvoices(p,fd);
+  else if(S.view==='reminders')renderReminders(p,fd);
+  else if(S.view==='catalog')renderCatalog(p);
+}
+
+function go(v){S.view=v;S.search='';render()}
+function setFilter(f){S.filter=f;render()}
+async function doLogout(){await sb.auth.signOut();S.user=null;render()}
+
+function filteredDevis(){
+  return S.devis.filter(function(d){
+    if(S.filter!=='all'&&d.entity_id!==S.filter)return false;
+    if(S.search){var s=S.search.toLowerCase();if(!(d.client_name||'').toLowerCase().includes(s)&&!String(d.number).includes(s)&&!(d.client_city||'').toLowerCase().includes(s))return false}
+    return true;
+  });
+}
+function counts(){
+  var a=S.devis.filter(function(d){return S.filter==='all'||d.entity_id===S.filter});
+  var now=new Date();
+  return{
+    draft:a.filter(function(d){return d.status==='draft'}).length,
+    sent:a.filter(function(d){return d.status==='sent'}).length,
+    accepted:a.filter(function(d){return['accepted','scheduled','flight_requested','flight_approved'].indexOf(d.status)>=0}).length,
+    toInv:a.filter(function(d){return d.status==='completed'}).length,
+    flights:a.filter(function(d){return['accepted','scheduled'].indexOf(d.status)>=0&&!d.flight_approved}).length,
+    reminders:a.filter(function(d){
+      if(d.status!=='invoiced'||!d.completed_date||d.reminder_done)return false;
+      var y=new Date(d.completed_date);y.setFullYear(y.getFullYear()+1);return now>=new Date(y.getTime()-60*864e5);
+    }).length,
+    totalHT:a.filter(function(d){return['accepted','scheduled','flight_requested','flight_approved','completed','invoiced'].indexOf(d.status)>=0}).reduce(function(s,d){return s+(d.total_ht||0)},0)
+  };
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+function renderDash(el,fd,cnt){
+  var upcoming=fd.filter(function(d){return d.intervention_date&&['scheduled','flight_requested','flight_approved'].indexOf(d.status)>=0}).sort(function(a,b){return new Date(a.intervention_date)-new Date(b.intervention_date)}).slice(0,5);
+  var recent=fd.slice(0,5);
+  var upH='';if(!upcoming.length)upH='<div class="empty">Aucune intervention planifiée<\/div>';
+  else upcoming.forEach(function(d){upH+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F1F3F5;flex-wrap:wrap"><div style="flex:1"><b style="font-size:13px">'+esc(d.client_name)+'<\/b> <span style="font-size:11px;color:var(--text3)">N°'+d.number+' · '+fDate(d.intervention_date)+'<\/span><\/div>'+etagHtml(d.entity_id)+' '+statusHtml(d.status)+'<\/div>'});
+  var recH='';if(!recent.length)recH='<div class="empty">Aucun devis<\/div>';
+  else recent.forEach(function(d){recH+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F1F3F5;flex-wrap:wrap"><div style="flex:1"><b style="font-size:13px">'+esc(d.client_name)+'<\/b> <span style="font-size:11px;color:var(--text3)">N°'+d.number+'<\/span><\/div><span class="mono">'+fEuro(d.total_ttc)+'<\/span> '+etagHtml(d.entity_id)+' '+statusHtml(d.status)+'<\/div>'});
+
+  el.innerHTML=
+    '<div class="stats">'+
+    '<div class="stat"><div class="stat-l">CA accepté (HT)<\/div><div class="stat-v" style="color:var(--ok)">'+fEuro(cnt.totalHT)+'<\/div><\/div>'+
+    '<div class="stat"><div class="stat-l">Devis en cours<\/div><div class="stat-v">'+cnt.sent+'<\/div><\/div>'+
+    '<div class="stat"><div class="stat-l">À planifier<\/div><div class="stat-v" style="color:var(--warn)">'+cnt.accepted+'<\/div><\/div>'+
+    '<div class="stat"><div class="stat-l">À facturer<\/div><div class="stat-v" style="color:var(--err)">'+cnt.toInv+'<\/div><\/div>'+
+    '<\/div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+    '<div class="card"><div class="card-h"><div class="card-t">Prochaines interventions<\/div><\/div>'+upH+'<\/div>'+
+    '<div class="card"><div class="card-h"><div class="card-t">Derniers devis<\/div><\/div>'+recH+'<\/div>'+
+    '<\/div>';
+}
+
+// ================================================================
+// DEVIS LIST
+// ================================================================
+function renderDevisList(el,fd){
+  if(!fd.length){el.innerHTML='<div class="card"><div class="empty">Aucun devis<\/div><\/div>';return}
+  var rows='';fd.forEach(function(d){
+    rows+='<tr><td class="mono">'+d.number+'<\/td><td>'+fDate(d.created_at)+'<\/td><td><b>'+esc(d.client_name)+'<\/b><\/td><td>'+etagHtml(d.entity_id)+'<\/td><td class="mono">'+fEuro(d.total_ttc)+'<\/td><td>'+statusHtml(d.status)+'<\/td>'
+      +'<td><button class="btn btn-g btn-s" onclick="viewDevis(\''+d.id+'\')">👁<\/button> '
+      +(d.status==='draft'?'<button class="btn btn-g btn-s" onclick="editDevis(\''+d.id+'\')">✏<\/button> ':'')
+      +'<button class="btn btn-g btn-s" onclick="delDevis(\''+d.id+'\')">🗑<\/button><\/td><\/tr>';
+  });
+  el.innerHTML='<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>N°<\/th><th>Date<\/th><th>Client<\/th><th>Structure<\/th><th>TTC<\/th><th>Statut<\/th><th>Actions<\/th><\/tr><\/thead><tbody>'+rows+'<\/tbody><\/table><\/div>';
+}
+
+async function delDevis(id){if(!confirm('Supprimer ce devis ?'))return;await sb.from('devis_lines').delete().eq('devis_id',id);await sb.from('devis').delete().eq('id',id);await loadAll();render();toast('Supprimé')}
+
+// ================================================================
+// PLANNING
+// ================================================================
+function renderPlanning(el,fd){
+  var s=fd.filter(function(d){return d.intervention_date&&['scheduled','flight_requested','flight_approved'].indexOf(d.status)>=0}).sort(function(a,b){return new Date(a.intervention_date)-new Date(b.intervention_date)});
+  if(!s.length){el.innerHTML='<div class="card"><div class="empty">Aucune intervention planifiée<\/div><\/div>';return}
+  var rows='';s.forEach(function(d){
+    var dd=Math.ceil((new Date(d.intervention_date)-new Date())/(864e5));
+    var ddT=dd<=0?"Aujourd'hui":dd===1?'Demain':'J-'+dd;
+    rows+='<tr><td><b>'+fDate(d.intervention_date)+'<\/b><br><span style="font-size:11px;color:'+(dd<=3?'var(--err)':'var(--text3)')+'">'+ddT+'<\/span><\/td><td class="mono">'+d.number+'<\/td><td><b>'+esc(d.client_name)+'<\/b><\/td><td>'+esc(d.client_city||d.delivery_city||'')+'<\/td><td>'+etagHtml(d.entity_id)+'<\/td><td>'+statusHtml(d.status)+'<\/td><td><button class="btn btn-g btn-s" onclick="viewDevis(\''+d.id+'\')">👁<\/button><\/td><\/tr>';
+  });
+  el.innerHTML='<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>Date<\/th><th>N°<\/th><th>Client<\/th><th>Lieu<\/th><th>Structure<\/th><th>Statut<\/th><th><\/th><\/tr><\/thead><tbody>'+rows+'<\/tbody><\/table><\/div>';
+}
+
+// ================================================================
+// FLIGHTS
+// ================================================================
+function renderFlights(el,fd){
+  var n=fd.filter(function(d){return['accepted','scheduled','flight_requested','flight_approved'].indexOf(d.status)>=0});
+  if(!n.length){el.innerHTML='<div class="card"><div class="empty">Aucune notification<\/div><\/div>';return}
+  var rows='';n.forEach(function(d){
+    var acts='<button class="btn btn-o btn-s" onclick="openFlightPeriods(\''+d.id+'\')">✈ Périodes<\/button>';
+    if(!d.flight_requested)acts+=' <button class="btn btn-p btn-s" onclick="markFlight(\''+d.id+'\',\'req\')">→ Vol demandé<\/button>';
+    else if(!d.flight_approved)acts+=' <button class="btn btn-ok btn-s" onclick="markFlight(\''+d.id+'\',\'ok\')">→ Vol approuvé<\/button>';
+    var chkReq=d.flight_requested
+      ?'<span title="Annuler demande vol" style="cursor:pointer;font-size:16px" onclick="markFlight(\''+d.id+'\',\'unreq\')">✅<\/span>'
+      :'<span style="font-size:16px;opacity:.3">⬜<\/span>';
+    var chkApp=d.flight_approved
+      ?'<span title="Annuler approbation vol" style="cursor:pointer;font-size:16px" onclick="markFlight(\''+d.id+'\',\'unok\')">✅<\/span>'
+      :'<span style="font-size:16px;opacity:.3">⬜<\/span>';
+    rows+='<tr><td class="mono">'+d.number+'<\/td><td><b>'+esc(d.client_name)+'<\/b><\/td><td>'+fDate(d.intervention_date)+'<\/td><td>'+etagHtml(d.entity_id)+'<\/td><td>'+statusHtml(d.status)+'<\/td><td>'+chkReq+'<\/td><td>'+chkApp+'<\/td><td>'+acts+'<\/td><\/tr>';
+  });
+  el.innerHTML='<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>N°<\/th><th>Client<\/th><th>Date<\/th><th>Structure<\/th><th>Statut<\/th><th>Demandé<\/th><th>Approuvé<\/th><th><\/th><\/tr><\/thead><tbody>'+rows+'<\/tbody><\/table><\/div>';
+}
+async function markFlight(id,t){
+  if(t==='req')  await sb.from('devis').update({status:'flight_requested',flight_requested:true,flight_approved:false}).eq('id',id);
+  if(t==='ok')   await sb.from('devis').update({status:'flight_approved',flight_requested:true,flight_approved:true}).eq('id',id);
+  if(t==='unreq')await sb.from('devis').update({status:'scheduled',flight_requested:false,flight_approved:false}).eq('id',id);
+  if(t==='unok') await sb.from('devis').update({status:'flight_requested',flight_requested:true,flight_approved:false}).eq('id',id);
+  await loadAll();render();toast('Mis à jour');
+}
+
+// ================================================================
+// MAP
+// ================================================================
+var mapInstance=null;
+function renderMap(el,fd){
+  var wc=fd.filter(function(d){return d.delivery_lat&&d.delivery_lng});
+  el.innerHTML='<div style="margin-bottom:10px;font-size:12px;color:var(--text2)">'+wc.length+' chantier(s) géolocalisé(s)<\/div><div id="mapbox" class="map-box"><\/div>';
+  setTimeout(function(){
+    if(mapInstance){mapInstance.remove();mapInstance=null}
+    var m=L.map('mapbox').setView([46.8,-0.8],9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(m);
+    mapInstance=m;
+    var markers=[];
+    wc.forEach(function(d){
+      var ent=S.ents.find(function(e){return e.id===d.entity_id});
+      var co=ent?ent.color:'#3B5BDB';
+      var ic=L.divIcon({className:'',html:'<div style="width:24px;height:24px;border-radius:50%;background:'+co+';border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3)"><\/div>',iconSize:[24,24],iconAnchor:[12,12]});
+      var mk=L.marker([d.delivery_lat,d.delivery_lng],{icon:ic}).addTo(m);
+      mk.bindPopup('<b>'+esc(d.client_name)+'<\/b><br>N°'+d.number+' · '+fEuro(d.total_ttc));
+      markers.push(mk);
+    });
+    if(markers.length)m.fitBounds(L.featureGroup(markers).getBounds().pad(0.1));
+  },100);
+}
+
+// ================================================================
+// INVOICES
+// ================================================================
+function renderInvoices(el,fd){
+  var ti=fd.filter(function(d){return d.status==='completed'});
+  var ri=fd.filter(function(d){return d.status==='invoiced'}).slice(0,10);
+  var h='<div class="card"><div class="card-h"><div class="card-t">Factures à éditer<\/div><\/div>';
+  if(!ti.length)h+='<div class="empty">Aucune facture en attente<\/div>';
+  else{
+    h+='<table><thead><tr><th>N°<\/th><th>Client<\/th><th>Réalisé<\/th><th>Structure<\/th><th>Montant<\/th><th><\/th><\/tr><\/thead><tbody>';
+    ti.forEach(function(d){h+='<tr><td class="mono">'+d.number+'<\/td><td><b>'+esc(d.client_name)+'<\/b><\/td><td>'+fDate(d.completed_date)+'<\/td><td>'+etagHtml(d.entity_id)+'<\/td><td class="mono">'+fEuro(d.total_ttc)+'<\/td><td><button class="btn btn-p btn-s" onclick="markInvoiced(\''+d.id+'\')">✓ Facturé<\/button><\/td><\/tr>'});
+    h+='<\/tbody><\/table>';
+  }
+  h+='<\/div>';
+  if(ri.length){
+    h+='<div class="card"><div class="card-h"><div class="card-t">Dernières factures<\/div><\/div><table><thead><tr><th>N°<\/th><th>Client<\/th><th>Facturé<\/th><th>Structure<\/th><th>Montant<\/th><\/tr><\/thead><tbody>';
+    ri.forEach(function(d){h+='<tr><td class="mono">'+d.number+'<\/td><td><b>'+esc(d.client_name)+'<\/b><\/td><td>'+fDate(d.invoiced_date)+'<\/td><td>'+etagHtml(d.entity_id)+'<\/td><td class="mono">'+fEuro(d.total_ttc)+'<\/td><\/tr>'});
+    h+='<\/tbody><\/table><\/div>';
+  }
+  el.innerHTML=h;
+}
+async function markInvoiced(id){await sb.from('devis').update({status:'invoiced',invoiced_date:new Date().toISOString()}).eq('id',id);await loadAll();render();toast('Facturé')}
+
+// ================================================================
+// REMINDERS
+// ================================================================
+function renderReminders(el,fd){
+  var now=new Date();
+  var items=fd.filter(function(d){return d.status==='invoiced'&&d.completed_date&&!d.reminder_done}).map(function(d){var y=new Date(d.completed_date);y.setFullYear(y.getFullYear()+1);return Object.assign({},d,{rd:y,du:Math.ceil((y-now)/864e5)})}).filter(function(d){return d.du<=60}).sort(function(a,b){return a.du-b.du});
+  if(!items.length){el.innerHTML='<div class="card"><div class="empty">Aucun rappel<\/div><\/div>';return}
+  var rows='';items.forEach(function(d){
+    rows+='<tr><td class="mono">'+d.number+'<\/td><td><b>'+esc(d.client_name)+'<\/b><\/td><td>'+fDate(d.completed_date)+'<\/td><td>'+fDate(d.rd)+'<\/td><td style="font-weight:700;color:'+(d.du<=0?'var(--err)':'var(--warn)')+'">'+( d.du<=0?'DÉPASSÉ':'J-'+d.du)+'<\/td><td><button class="btn btn-ok btn-s" onclick="markReminder(\''+d.id+'\')">✓ Fait<\/button><\/td><\/tr>';
+  });
+  el.innerHTML='<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>N°<\/th><th>Client<\/th><th>Réalisé<\/th><th>Échéance<\/th><th>Jours<\/th><th><\/th><\/tr><\/thead><tbody>'+rows+'<\/tbody><\/table><\/div>';
+}
+async function markReminder(id){await sb.from('devis').update({reminder_done:true}).eq('id',id);await loadAll();render();toast('Rappel fait')}
+
+// ================================================================
+// CATALOG
+// ================================================================
+var catTab='services';
+function renderCatalog(el){
+  var tabs='<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:12px">'
+    +'<div style="padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid '+(catTab==='services'?'var(--pri)':'transparent')+';color:'+(catTab==='services'?'var(--pri)':'var(--text3)')+';margin-bottom:-2px" onclick="catTab=\'services\';renderCatalog($(\'page\'))">Prestations ('+S.svcs.length+')<\/div>'
+    +'<div style="padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid '+(catTab==='consumables'?'var(--pri)':'transparent')+';color:'+(catTab==='consumables'?'var(--pri)':'var(--text3)')+';margin-bottom:-2px" onclick="catTab=\'consumables\';renderCatalog($(\'page\'))">Consommables ('+S.cons.length+')<\/div>'
+    +'<div style="padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid '+(catTab==='templates'?'var(--pri)':'transparent')+';color:'+(catTab==='templates'?'var(--pri)':'var(--text3)')+';margin-bottom:-2px" onclick="catTab=\'templates\';renderCatalog($(\'page\'))">Modèles ('+S.tpls.length+')<\/div><\/div>';
+
+  var h=tabs;
+  if(catTab==='services'){
+    h+='<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>Désignation<\/th><th>Prix/m²<\/th><th>Catégorie<\/th><th><button class="btn btn-p btn-s" onclick="openCatForm(\'service\')">+<\/button><\/th><\/tr><\/thead><tbody>';
+    S.svcs.forEach(function(s){h+='<tr><td><b>'+esc(s.designation)+'<\/b><\/td><td class="mono">'+(s.prix_m2||0).toFixed(2)+' €/m²<\/td><td>'+esc(s.category||'')+'<\/td><td><button class="btn btn-g btn-s" onclick="openCatForm(\'service\',\''+s.id+'\')">✏<\/button> <button class="btn btn-g btn-s" onclick="delSvc(\''+s.id+'\')">🗑<\/button><\/td><\/tr>'});
+    h+='<\/tbody><\/table><\/div>';
+  }else if(catTab==='consumables'){
+    h+='<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>Désignation<\/th><th>Prix/L<\/th><th>Conso/m²<\/th><th><button class="btn btn-p btn-s" onclick="openCatForm(\'consumable\')">+<\/button><\/th><\/tr><\/thead><tbody>';
+    S.cons.forEach(function(c){h+='<tr><td><b>'+esc(c.designation)+'<\/b><\/td><td class="mono">'+(c.prix_litre||0).toFixed(2)+' €<\/td><td class="mono">'+c.conso_m2+' L/m²<\/td><td><button class="btn btn-g btn-s" onclick="openCatForm(\'consumable\',\''+c.id+'\')">✏<\/button> <button class="btn btn-g btn-s" onclick="delCon(\''+c.id+'\')">🗑<\/button><\/td><\/tr>'});
+    h+='<\/tbody><\/table><\/div>';
+  }else{
+    h+='<div style="text-align:right;margin-bottom:10px"><button class="btn btn-p btn-s" onclick="openTplForm()">+ Nouveau modèle<\/button><\/div>';
+    S.tpls.forEach(function(t){
+      h+='<div class="card"><div class="card-h"><div><div class="card-t">'+esc(t.name)+'<\/div>'+(t.category?'<span style="font-size:10px;background:var(--bg);padding:1px 6px;border-radius:4px;color:var(--text2)">'+esc(t.category)+'<\/span>':'')+'<\/div><div><button class="btn btn-g btn-s" onclick="openTplForm(\''+t.id+'\')">✏<\/button> <button class="btn btn-g btn-s" onclick="delTpl(\''+t.id+'\')">🗑<\/button><\/div><\/div><div style="white-space:pre-line;font-size:12px;color:#495057;max-height:80px;overflow:hidden">'+esc(t.description)+'<\/div><\/div>';
+    });
+  }
+  el.innerHTML=h;
+}
+async function delSvc(id){if(confirm('Supprimer ?')){await sb.from('services').delete().eq('id',id);await loadAll();render()}}
+async function delCon(id){if(confirm('Supprimer ?')){await sb.from('consumables').delete().eq('id',id);await loadAll();render()}}
+async function delTpl(id){if(confirm('Supprimer ?')){await sb.from('templates').delete().eq('id',id);await loadAll();render()}}
+
+// ================================================================
+// MODALS
+// ================================================================
+function showModal(title,body,foot,wide){
+  var d=document.createElement('div');d.className='modal-bg';d.id='modal';
+  d.onclick=function(e){if(e.target===d)closeModal()};
+  d.innerHTML='<div class="modal-box"'+(wide?' style="max-width:900px"':'')+'><div class="modal-head"><h3>'+title+'<\/h3><button class="btn btn-g" onclick="closeModal()">✕<\/button><\/div><div class="modal-body" id="mbody">'+body+'<\/div>'+(foot?'<div class="modal-foot">'+foot+'<\/div>':'')+'<\/div>';
+  document.body.appendChild(d);
+}
+function closeModal(){var m=$('modal');if(m)m.remove()}
+
+// ================================================================
+// DEVIS VIEW
+// ================================================================
+async function viewDevis(id){
+  var d=S.devis.find(function(x){return x.id===id});if(!d)return;
+  var lines=await loadLines(id);
+  var ent=S.ents.find(function(e){return e.id===d.entity_id})||{};
+  var linesH='';lines.forEach(function(l){linesH+='<tr><td>'+esc(l.designation)+'<\/td><td class="mono">'+Number(l.qty).toFixed(2)+'<\/td><td>'+esc(l.unit)+'<\/td><td class="mono">'+Number(l.prix_unit).toFixed(2)+'<\/td><td>'+l.tva_rate+'%<\/td><td class="mono" style="text-align:right;font-weight:700">'+fEuro(l.qty*l.prix_unit)+'<\/td><\/tr>'});
+
+  var body='<div style="display:flex;justify-content:space-between;margin-bottom:20px"><div style="font-size:12px"><b style="font-size:15px;color:'+(ent.color||'#333')+'">'+esc(ent.name)+'<\/b><br>'+esc(ent.legal_name)+'<br>'+esc(ent.address)+'<br>'+esc(ent.postal_code)+' '+esc(ent.city)+'<\/div><div style="text-align:right;font-size:12px"><b style="font-size:14px">'+esc(d.client_name)+'<\/b><br>'+esc(d.client_address||'')+'<br>'+esc(d.client_postal||'')+' '+esc(d.client_city||'')+'<\/div><\/div>'
+    +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">Devis N° '+d.number+'<\/div>'
+    +(d.title?'<div style="font-weight:600;font-size:13px;margin-bottom:4px">'+esc(d.title)+'<\/div>':'')
+    +'<div style="font-size:11px;color:var(--text2);margin-bottom:14px">Émission : '+fDate(d.created_at)+' · Validité : '+(d.validity_days||30)+' jours<\/div>'
+    +(d.description?'<div style="white-space:pre-line;font-size:12px;color:#495057;margin-bottom:14px">'+esc(d.description)+'<\/div>':'')
+    +'<table><thead><tr><th style="background:'+(ent.color||'var(--pri)')+';color:#fff">Désignation<\/th><th style="background:'+(ent.color||'var(--pri)')+';color:#fff">Qté<\/th><th style="background:'+(ent.color||'var(--pri)')+';color:#fff">Unité<\/th><th style="background:'+(ent.color||'var(--pri)')+';color:#fff">PU<\/th><th style="background:'+(ent.color||'var(--pri)')+';color:#fff">TVA<\/th><th style="background:'+(ent.color||'var(--pri)')+';color:#fff;text-align:right">Montant HT<\/th><\/tr><\/thead><tbody>'+linesH+'<\/tbody><\/table>'
+    +'<div style="text-align:right;margin-top:10px;font-size:13px"><div>Total HT : <b>'+fEuro(d.total_ht)+'<\/b><\/div>'+((ent.tva_rate||0)>0?'<div>TVA '+ent.tva_rate+'% : <b>'+fEuro(d.total_tva)+'<\/b><\/div>':'')+'<div style="font-size:16px;font-weight:700;margin-top:4px">Total TTC : '+fEuro(d.total_ttc)+'<\/div><\/div>'
+    +'<div style="margin-top:16px;font-size:10px;color:var(--text2)">'+(ent.tva_mention?esc(ent.tva_mention)+'<br>':'')+'SIREN '+esc(ent.siren)+(ent.naf?' - NAF '+esc(ent.naf):'')+(ent.rcs?' - RCS '+esc(ent.rcs):'')+(ent.tva_intra?'<br>TVA intra : '+esc(ent.tva_intra):'')+'<\/div>';
+
+  // Status actions (avancer + rétrograder)
+  var fwd={
+    draft:'<button class="btn btn-p btn-s" onclick="chStatus(\''+id+'\',\'sent\')">→ Envoyé<\/button>',
+    sent:'<button class="btn btn-ok btn-s" onclick="chStatus(\''+id+'\',\'accepted\')">→ Accepté<\/button> <button class="btn btn-er btn-s" onclick="chStatus(\''+id+'\',\'rejected\')">→ Refusé<\/button>',
+    accepted:'<button class="btn btn-p btn-s" onclick="openSchedule(\''+id+'\')">→ Planifier<\/button>',
+    scheduled:'<button class="btn btn-o btn-s" onclick="openFlightPeriods(\''+id+'\')">✈ Périodes vol<\/button> <button class="btn btn-ok btn-s" onclick="chStatus(\''+id+'\',\'completed\',{completed_date:new Date().toISOString()})">→ Réalisé<\/button>',
+    flight_requested:'<button class="btn btn-ok btn-s" onclick="chStatus(\''+id+'\',\'flight_approved\',{flight_approved:true})">→ Vol approuvé<\/button>',
+    flight_approved:'<button class="btn btn-ok btn-s" onclick="chStatus(\''+id+'\',\'completed\',{completed_date:new Date().toISOString()})">→ Réalisé<\/button>',
+    completed:'<button class="btn btn-p btn-s" onclick="chStatus(\''+id+'\',\'invoiced\',{invoiced_date:new Date().toISOString()})">→ Facturé<\/button>',
+    invoiced:'',rejected:''
+  };
+  var bwd={
+    sent:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'draft\',{flight_requested:false,flight_approved:false})">← Brouillon<\/button>',
+    accepted:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'sent\',{flight_requested:false,flight_approved:false})">← Envoyé<\/button>',
+    rejected:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'sent\',{flight_requested:false,flight_approved:false})">← Envoyé<\/button>',
+    scheduled:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'accepted\',{flight_requested:false,flight_approved:false})">← Accepté<\/button>',
+    flight_requested:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'scheduled\',{flight_requested:false,flight_approved:false})">← Planifié<\/button>',
+    flight_approved:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'flight_requested\',{flight_requested:true,flight_approved:false})">← Vol demandé<\/button>',
+    completed:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'flight_approved\',{flight_requested:true,flight_approved:true})">← Vol approuvé<\/button>',
+    invoiced:'<button class="btn btn-g btn-s" onclick="chStatus(\''+id+'\',\'completed\',{invoiced_date:null})">← Réalisé<\/button>'
+  };
+
+  var foot=statusHtml(d.status)
+    +' <button class="btn btn-o btn-s" onclick="dlPDF(\''+id+'\')">📥 PDF<\/button>'
+    +' <button class="btn btn-o btn-s" onclick="openEditDates(\''+id+'\')">📅 Dates<\/button>'
+    +' '+(bwd[d.status]||'')
+    +' '+(fwd[d.status]||'');
+  showModal('Devis N°'+d.number,body,foot,true);
+
+  // Store for PDF
+  window._pdfD=d;window._pdfE=ent;window._pdfL=lines;
+}
+
+async function chStatus(id,status,extras){
+  await sb.from('devis').update(Object.assign({status:status},extras||{})).eq('id',id);
+  closeModal();await loadAll();render();toast('Mis à jour');
+}
+
+// ── EDITION DATES ─────────────────────────────────────────────────
+function openEditDates(id){
+  var d=S.devis.find(function(x){return x.id===id});if(!d)return;
+  var toD=function(v){return v?(v.indexOf('T')>0?v.slice(0,10):v):''};
+  var body=
+    '<div class="form-r">'
+    +'<div class="fg"><label class="fl">Date du devis (création)</label><input class="fi" type="date" id="ed-created" value="'+toD(d.created_at)+'"><\/div>'
+    +'<div class="fg"><label class="fl">Date d\'intervention</label><input class="fi" type="date" id="ed-interv" value="'+toD(d.intervention_date)+'"><\/div>'
+    +'<\/div>'
+    +'<div class="form-r">'
+    +'<div class="fg"><label class="fl">Date réalisé</label><input class="fi" type="date" id="ed-done" value="'+toD(d.completed_date)+'"><\/div>'
+    +'<div class="fg"><label class="fl">Date facturé</label><input class="fi" type="date" id="ed-inv" value="'+toD(d.invoiced_date)+'"><\/div>'
+    +'<\/div>';
+  var foot='<button class="btn btn-o" onclick="closeModal()">Annuler<\/button>'
+    +' <button class="btn btn-p" onclick="saveEditDates(\''+id+'\')">Enregistrer<\/button>';
+  closeModal();showModal('Modifier les dates — N°'+d.number,body,foot);
+}
+async function saveEditDates(id){
+  var toISO=function(v){return v?new Date(v).toISOString():null};
+  var cd=$v('ed-created');
+  var upd={
+    intervention_date:$v('ed-interv')||null,
+    completed_date:toISO($v('ed-done')),
+    invoiced_date:toISO($v('ed-inv'))
+  };
+  if(cd)upd.created_at=new Date(cd).toISOString();
+  await sb.from('devis').update(upd).eq('id',id);
+  closeModal();await loadAll();render();toast('Dates mises à jour');
+}
+
+// ── PERIODES VOL ──────────────────────────────────────────────────
+// Table Supabase : flight_periods (id uuid, devis_id uuid, date_start date, date_end date, status text [pending/approved/cancelled], notes text, created_at)
+async function openFlightPeriods(did){
+  var d=S.devis.find(function(x){return x.id===did});if(!d)return;
+  // Charger les périodes
+  var r=await sb.from('flight_periods').select('*').eq('devis_id',did).order('date_start');
+  var periods=r.data||[];
+  renderFlightPeriodsModal(did,d,periods);
+}
+function renderFlightPeriodsModal(did,d,periods){
+  var pRows='';
+  if(!periods.length)pRows='<div class="empty" style="padding:16px">Aucune période définie<\/div>';
+  else periods.forEach(function(p){
+    var sc={pending:'#E67700',approved:'#0CA678',cancelled:'#C92A2A'};
+    var sl={pending:'En attente',approved:'Approuvé',cancelled:'Annulé'};
+    var acts='';
+    if(p.status==='pending')acts='<button class="btn btn-ok btn-s" onclick="fpAction(\''+p.id+'\',\'approved\')">✓ Approuver<\/button> <button class="btn btn-er btn-s" onclick="fpAction(\''+p.id+'\',\'cancelled\')">✕ Annuler<\/button>';
+    else if(p.status==='approved')acts='<button class="btn btn-g btn-s" onclick="fpAction(\''+p.id+'\',\'pending\')">↩ Repasser en attente<\/button> <button class="btn btn-er btn-s" onclick="fpAction(\''+p.id+'\',\'cancelled\')">✕ Annuler<\/button>';
+    else acts='<button class="btn btn-g btn-s" onclick="fpAction(\''+p.id+'\',\'pending\')">↩ Réactiver<\/button>';
+    pRows+='<tr>'
+      +'<td>'+fDate(p.date_start)+(p.date_end&&p.date_end!==p.date_start?' → '+fDate(p.date_end):'')+'<\/td>'
+      +'<td><span class="badge" style="background:'+sc[p.status]+'18;color:'+sc[p.status]+'">'+sl[p.status]+'<\/span><\/td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+esc(p.notes||'')+'<\/td>'
+      +'<td>'+acts+' <button class="btn btn-g btn-s" onclick="fpDelete(\''+p.id+'\')">🗑<\/button><\/td>'
+      +'<\/tr>';
+  });
+  var body=
+    '<div class="card" style="padding:0;overflow:auto;margin-bottom:12px"><table><thead><tr><th>Période<\/th><th>Statut<\/th><th>Notes<\/th><th><\/th><\/tr><\/thead><tbody>'+pRows+'<\/tbody><\/table><\/div>'
+    +'<div class="card"><div class="card-t" style="margin-bottom:10px">Nouvelle période<\/div>'
+    +'<div class="form-r"><div class="fg"><label class="fl">Début *<\/label><input class="fi" type="date" id="fp-s"><\/div><div class="fg"><label class="fl">Fin (optionnel)<\/label><input class="fi" type="date" id="fp-e"><\/div><\/div>'
+    +'<div class="fg"><label class="fl">Notes<\/label><input class="fi" id="fp-n" placeholder="Ex : météo favorable, accès toit..."><\/div>'
+    +'<div style="text-align:right"><button class="btn btn-p btn-s" onclick="fpAdd(\''+did+'\')">+ Ajouter période<\/button><\/div>'
+    +'<\/div>';
+  var allApproved=periods.length>0&&periods.every(function(p){return p.status==='approved'});
+  var hasPending=periods.some(function(p){return p.status==='pending'});
+  var foot='<button class="btn btn-o" onclick="closeModal()">Fermer<\/button>'
+    +(hasPending?'<button class="btn btn-p btn-s" style="margin-left:6px" onclick="chStatus(\''+did+'\',\'flight_requested\',{flight_requested:true})">→ Marquer vol demandé<\/button>':'')
+    +(allApproved?'<button class="btn btn-ok btn-s" style="margin-left:6px" onclick="chStatus(\''+did+'\',\'flight_approved\',{flight_approved:true})">→ Marquer vol approuvé<\/button>':'');
+  closeModal();
+  window._fpDid=did;window._fpD=d;
+  showModal('Périodes de vol — N°'+d.number,body,foot,true);
+}
+async function fpAdd(did){
+  var ds=$v('fp-s');if(!ds){toast('Date de début requise');return}
+  var de=$v('fp-e')||ds;
+  await sb.from('flight_periods').insert({devis_id:did,date_start:ds,date_end:de,status:'pending',notes:$v('fp-n')});
+  var r=await sb.from('flight_periods').select('*').eq('devis_id',did).order('date_start');
+  renderFlightPeriodsModal(did,window._fpD,r.data||[]);
+  toast('Période ajoutée');
+}
+async function fpAction(pid,status){
+  await sb.from('flight_periods').update({status:status}).eq('id',pid);
+  var r=await sb.from('flight_periods').select('*').eq('devis_id',window._fpDid).order('date_start');
+  renderFlightPeriodsModal(window._fpDid,window._fpD,r.data||[]);
+  toast('Mis à jour');
+}
+async function fpDelete(pid){
+  if(!confirm('Supprimer cette période ?'))return;
+  await sb.from('flight_periods').delete().eq('id',pid);
+  var r=await sb.from('flight_periods').select('*').eq('devis_id',window._fpDid).order('date_start');
+  renderFlightPeriodsModal(window._fpDid,window._fpD,r.data||[]);
+}
+
+// ================================================================
+// DEVIS FORM
+// ================================================================
+var formLines=[];
+function openDevisForm(editD){
+  formLines=[];
+  var d=editD||{};
+  var entBtns='';S.ents.forEach(function(e){entBtns+='<button class="btn'+((!d.entity_id&&e===S.ents[0])||d.entity_id===e.id?' btn-p':' btn-o')+'" style="'+((!d.entity_id&&e===S.ents[0])||d.entity_id===e.id?'background:'+e.color:'')+'" onclick="pickEnt(\''+e.id+'\')">'+esc(e.name)+'<\/button> '});
+  var tplBtns='';S.tpls.forEach(function(t){tplBtns+='<span class="tpl-btn" onclick="applyTpl(\''+t.id+'\')">📋 '+esc(t.name)+'<\/span>'});
+
+  var body='<div class="fg"><label class="fl">Structure<\/label><div id="f-entbtns">'+entBtns+'<\/div><input type="hidden" id="f-ent" value="'+(d.entity_id||S.ents[0]?.id||'')+'"><\/div>'
+
+    +'<div class="sect">Client<\/div>'
+    +'<div class="fg"><label class="fl">Rechercher un client existant<\/label><div class="addr-wrap"><input class="fi" id="f-csearch" placeholder="Tapez le nom d\'un client..." oninput="clientSearch(this.value)" autocomplete="off"><div id="f-csearch-list" class="addr-list" style="display:none"><\/div><\/div><\/div>'
+    +'<div class="form-r"><div class="fg"><label class="fl">Nom *<\/label><input class="fi" id="f-cn" value="'+esc(d.client_name||'')+'"><\/div><div class="fg"><label class="fl">Ville<\/label><input class="fi" id="f-cc" value="'+esc(d.client_city||'')+'"><\/div><\/div>'
+    +'<div class="form-r"><div class="fg"><label class="fl">Adresse<\/label><input class="fi" id="f-ca" value="'+esc(d.client_address||'')+'"><\/div><div class="fg"><label class="fl">Code postal<\/label><input class="fi" id="f-cp" value="'+esc(d.client_postal||'')+'"><\/div><\/div>'
+    +'<div class="sect">Chantier<\/div>'
+    +'<div class="fg"><label class="fl">Adresse (saisie prédictive)<\/label><div class="addr-wrap"><input class="fi" id="f-addr" value="'+esc(d.delivery_address||'')+'" oninput="addrSearch(this.value)" autocomplete="off"><div id="f-addr-list" class="addr-list" style="display:none"><\/div><\/div><\/div>'
+    +'<div class="form-r3"><div class="fg"><label class="fl">Adresse<\/label><input class="fi" id="f-da" value="'+esc(d.delivery_address||'')+'"><\/div><div class="fg"><label class="fl">CP<\/label><input class="fi" id="f-dp" value="'+esc(d.delivery_postal||'')+'"><\/div><div class="fg"><label class="fl">Ville<\/label><input class="fi" id="f-dc" value="'+esc(d.delivery_city||'')+'"><\/div><\/div>'
+    +'<input type="hidden" id="f-dlat" value="'+(d.delivery_lat||'')+'"><input type="hidden" id="f-dlng" value="'+(d.delivery_lng||'')+'">'
+    +'<div class="sect">Devis<\/div>'
+    +'<div class="form-r3"><div class="fg"><label class="fl">Intitulé<\/label><input class="fi" id="f-title" value="'+esc(d.title||'')+'"><\/div><div class="fg"><label class="fl">Surface (m²)<\/label><input class="fi" type="number" id="f-m2" value="'+(d.surface_m2||'')+'" oninput="onM2Change()"><\/div><div class="fg"><label class="fl">Validité (j)<\/label><input class="fi" type="number" id="f-vd" value="'+(d.validity_days||30)+'"><\/div><\/div>'
+    +'<div id="f-m2-preview" style="margin:-6px 0 10px;font-size:11px;color:var(--text2)"><\/div>'
+    +(tplBtns?'<div class="fg"><label class="fl">Modèle<\/label><div>'+tplBtns+'<\/div><\/div>':'')
+    +'<div class="fg"><label class="fl">Description<\/label><textarea class="ft" id="f-desc" rows="5">'+esc(d.description||'')+'<\/textarea><\/div>'
+    +'<div class="sect">Lignes<\/div>'
+    +'<div id="f-lines"><\/div>'
+    +'<div style="margin-top:8px"><button class="btn btn-o btn-s" onclick="addLine(\'service\')">+ Prestation<\/button> <button class="btn btn-o btn-s" onclick="addLine(\'consumable\')">+ Consommable<\/button> <button class="btn btn-o btn-s" onclick="addLine(\'product\')">+ Produit seul<\/button> <button class="btn btn-o btn-s" onclick="addLine(\'custom\')">+ Libre<\/button><\/div>'
+    +'<div id="f-totals" style="text-align:right;margin-top:16px;padding-top:10px;border-top:2px solid var(--border)"><\/div>';
+
+  var foot='<button class="btn btn-o" onclick="closeModal()">Annuler<\/button> '
+    +'<button class="btn btn-o" onclick="saveDevis(true)">Brouillon<\/button> '
+    +'<button class="btn btn-p" onclick="saveDevis(false)">Enregistrer<\/button>';
+
+  showModal(d.id?'Modifier N°'+d.number:'Nouveau devis',body,foot,true);
+
+  // Load lines if editing
+  if(d.id){
+    loadLines(d.id).then(function(ll){
+      formLines=ll.map(function(l,i){return{_i:i,line_type:l.line_type,catalog_ref:l.catalog_ref,designation:l.designation,qty:l.qty,unit:l.unit,prix_unit:l.prix_unit,tva_rate:l.tva_rate,surface_m2:l.surface_m2||0}});
+      renderFormLines();
+    });
+  }
+  window._editId=d.id||null;
+}
+function editDevis(id){var d=S.devis.find(function(x){return x.id===id});if(d)openDevisForm(d)}
+
+function pickEnt(eid){if($('f-ent'))$('f-ent').value=eid;/* re-render buttons */
+  var h='';S.ents.forEach(function(e){h+='<button class="btn'+(eid===e.id?' btn-p':' btn-o')+'" style="'+(eid===e.id?'background:'+e.color:'')+'" onclick="pickEnt(\''+e.id+'\')">'+esc(e.name)+'<\/button> '});
+  $('f-entbtns').innerHTML=h;
+}
+
+var addrTimer=null;
+function addrSearch(q){
+  clearTimeout(addrTimer);
+  if(q.length<3){$('f-addr-list').style.display='none';return}
+  addrTimer=setTimeout(function(){
+    fetch('https://api-adresse.data.gouv.fr/search/?q='+encodeURIComponent(q)+'&limit=5').then(function(r){return r.json()}).then(function(d){
+      if(!d.features||!d.features.length){$('f-addr-list').style.display='none';return}
+      var h='';d.features.forEach(function(f,i){
+        h+='<div class="addr-opt" onclick="pickAddr('+i+')"><div class="addr-main">'+esc(f.properties.name)+'<\/div><div class="addr-sub">'+esc(f.properties.postcode)+' '+esc(f.properties.city)+'<\/div><\/div>';
+      });
+      window._addrResults=d.features;
+      $('f-addr-list').innerHTML=h;$('f-addr-list').style.display='block';
+    });
+  },300);
+}
+function pickAddr(i){
+  var f=window._addrResults[i];if(!f)return;
+  $('f-addr').value=f.properties.label;
+  $('f-da').value=f.properties.name;
+  $('f-dp').value=f.properties.postcode;
+  $('f-dc').value=f.properties.city;
+  $('f-dlat').value=f.geometry.coordinates[1];
+  $('f-dlng').value=f.geometry.coordinates[0];
+  $('f-addr-list').style.display='none';
+}
+
+// Recherche client existant
+function clientSearch(q){
+  var list=$('f-csearch-list');if(!list)return;
+  if(q.length<2){list.style.display='none';return}
+  var ql=q.toLowerCase();
+  // Dédoublonner par nom client
+  var seen={};var matches=[];
+  S.devis.forEach(function(d){
+    if(!(d.client_name||'').toLowerCase().includes(ql))return;
+    var key=(d.client_name||'').toLowerCase();
+    if(seen[key])return;
+    seen[key]=true;
+    matches.push(d);
+  });
+  if(!matches.length){list.style.display='none';return}
+  var h='';matches.slice(0,6).forEach(function(d,i){
+    h+='<div class="addr-opt" onclick="pickClient('+i+')">'
+      +'<div class="addr-main">'+esc(d.client_name)+'<\/div>'
+      +'<div class="addr-sub">'+(d.client_address?esc(d.client_address)+' · ':'')+esc(d.client_postal||'')+' '+esc(d.client_city||'')+'<\/div>'
+      +'<\/div>';
+  });
+  window._clientResults=matches.slice(0,6);
+  list.innerHTML=h;list.style.display='block';
+}
+function pickClient(i){
+  var d=window._clientResults[i];if(!d)return;
+  if($('f-cn'))$('f-cn').value=d.client_name||'';
+  if($('f-ca'))$('f-ca').value=d.client_address||'';
+  if($('f-cp'))$('f-cp').value=d.client_postal||'';
+  if($('f-cc'))$('f-cc').value=d.client_city||'';
+  if($('f-csearch'))$('f-csearch').value='';
+  if($('f-csearch-list'))$('f-csearch-list').style.display='none';
+}
+
+// Recalcul litres quand surface change
+function onM2Change(){
+  var m2=parseFloat($v('f-m2'))||0;
+  // Mettre à jour les lignes existantes (service + consumable + product)
+  formLines.forEach(function(l){
+    if(l.line_type==='service'&&l.catalog_ref){l.qty=m2}
+    if((l.line_type==='consumable'||l.line_type==='product')&&l.catalog_ref){
+      var c=S.cons.find(function(x){return x.id===l.catalog_ref});
+      if(c){l.qty=m2?Math.ceil(m2*c.conso_m2*10)/10:0;if(l.line_type==='product')l.surface_m2=m2}
+    }
+  });
+  // Afficher le preview des consommables
+  var prev=$('f-m2-preview');if(!prev)return;
+  if(!m2){prev.innerHTML='';return}
+  var parts=[];
+  S.cons.forEach(function(c){
+    var l=Math.ceil(m2*c.conso_m2*10)/10;
+    parts.push('<b>'+esc(c.designation)+'<\/b> : '+l+' '+(c.unit||'L'));
+  });
+  prev.innerHTML=parts.length?'📐 Pour '+m2+' m² → '+parts.join(' · '):'';
+  renderFormLines();
+}
+
+var lineCounter=0;
+function addLine(type){
+  var eid=$v('f-ent');var ent=S.ents.find(function(e){return e.id===eid})||{tva_rate:20};
+  formLines.push({_i:lineCounter++,line_type:type,catalog_ref:null,designation:'',qty:type==='service'?(parseFloat($v('f-m2'))||0):type==='product'?(parseFloat($v('f-m2'))||0):0,unit:type==='consumable'||type==='product'?'litres':'m²',prix_unit:0,tva_rate:ent.tva_rate||0,surface_m2:type==='product'?(parseFloat($v('f-m2'))||0):0});
+  renderFormLines();
+}
+function removeLine(i){formLines=formLines.filter(function(l){return l._i!==i});renderFormLines()}
+
+function renderFormLines(){
+  var h='';
+  formLines.forEach(function(l){
+    var sel='';
+    if(l.line_type==='service'){
+      sel='<select class="fi" style="font-size:12px" onchange="pickCat('+l._i+',this.value)"><option value="">— Prestation —<\/option>';
+      S.svcs.forEach(function(s){sel+='<option value="'+s.id+'"'+(l.catalog_ref===s.id?' selected':'')+'>'+esc(s.designation)+' ('+s.prix_m2+'€/m²)<\/option>'});
+      sel+='<\/select>';
+    }else if(l.line_type==='consumable'){
+      sel='<select class="fi" style="font-size:12px" onchange="pickCat('+l._i+',this.value)"><option value="">— Consommable —<\/option>';
+      S.cons.forEach(function(c){sel+='<option value="'+c.id+'"'+(l.catalog_ref===c.id?' selected':'')+'>'+esc(c.designation)+' ('+c.conso_m2+'L/m²)<\/option>'});
+      sel+='<\/select>';
+    }else if(l.line_type==='product'){
+      sel='<select class="fi" style="font-size:12px" onchange="pickCat('+l._i+',this.value)"><option value="">— Produit seul —<\/option>';
+      S.cons.forEach(function(c){sel+='<option value="'+c.id+'"'+(l.catalog_ref===c.id?' selected':'')+'>'+esc(c.designation)+' ('+c.conso_m2+'L/m²)<\/option>'});
+      sel+='<\/select>';
+    }else{
+      sel='<input class="fi" style="font-size:12px" value="'+esc(l.designation)+'" onchange="updLine('+l._i+',\'designation\',this.value)">';
+    }
+    h+='<div class="line-row">'+
+      '<div>'+sel+'<\/div>'+
+      (l.line_type==='product'
+        ?'<div><input class="fi mono" type="number" step="0.1" value="'+l.qty+'" style="font-size:12px;text-align:right" onchange="updLine('+l._i+',\'qty\',parseFloat(this.value)||0)"><\/div>'
+         +'<div><span style="font-size:11px;color:var(--text3)">'+esc(l.unit||'L')+'<br>'+(l.surface_m2?l.surface_m2+'m²':'')+'<\/span><\/div>'
+        :'<div><input class="fi mono" type="number" step="0.01" value="'+l.qty+'" style="font-size:12px;text-align:right" onchange="updLine('+l._i+',\'qty\',parseFloat(this.value)||0)"><\/div>'
+         +'<div><input class="fi" value="'+esc(l.unit)+'" style="font-size:12px" onchange="updLine('+l._i+',\'unit\',this.value)"><\/div>'
+      )+
+      '<div><input class="fi mono" type="number" step="0.01" value="'+l.prix_unit+'" style="font-size:12px;text-align:right" onchange="updLine('+l._i+',\'prix_unit\',parseFloat(this.value)||0)"><\/div>'+
+      '<div class="mono" style="text-align:right;font-weight:600">'+fEuro(l.qty*l.prix_unit)+'<\/div>'+
+      '<div><button class="btn btn-g btn-s" onclick="removeLine('+l._i+')">🗑<\/button><\/div>'+
+      '<\/div>';
+  });
+  if($('f-lines'))$('f-lines').innerHTML=h;
+  calcTotals();
+}
+
+function updLine(i,f,v){var l=formLines.find(function(x){return x._i===i});if(l){l[f]=v;renderFormLines()}}
+function pickCat(i,cid){
+  var l=formLines.find(function(x){return x._i===i});if(!l)return;
+  l.catalog_ref=cid;
+  if(l.line_type==='service'){var c=S.svcs.find(function(s){return s.id===cid});if(c){l.designation=c.designation;l.prix_unit=c.prix_m2;l.qty=parseFloat($v('f-m2'))||0;l.unit='m²'}}
+  if(l.line_type==='consumable'){var c=S.cons.find(function(x){return x.id===cid});if(c){l.designation=c.designation;l.prix_unit=c.prix_litre;var m2=parseFloat($v('f-m2'))||0;l.qty=m2?Math.ceil(m2*c.conso_m2*10)/10:0;l.unit=c.unit}}
+  if(l.line_type==='product'){var c=S.cons.find(function(x){return x.id===cid});if(c){l.designation=c.designation;l.prix_unit=c.prix_litre;var m2=parseFloat($v('f-m2'))||0;l.qty=m2?Math.ceil(m2*c.conso_m2*10)/10:0;l.unit=c.unit||'litres';l.surface_m2=m2}}
+  renderFormLines();
+}
+
+function applyTpl(tid){
+  var t=S.tpls.find(function(x){return x.id===tid});if(!t)return;
+  if($('f-desc'))$('f-desc').value=t.description||'';
+  if(t.title&&$('f-title'))$('f-title').value=t.title;
+  var eid=$v('f-ent');var ent=S.ents.find(function(e){return e.id===eid})||{tva_rate:20};
+  var m2=parseFloat($v('f-m2'))||0;
+  formLines=[];lineCounter=0;
+  (t.default_services||[]).forEach(function(sid){var c=S.svcs.find(function(s){return s.id===sid});if(c)formLines.push({_i:lineCounter++,line_type:'service',catalog_ref:sid,designation:c.designation,qty:m2,unit:'m²',prix_unit:c.prix_m2,tva_rate:ent.tva_rate||0})});
+  (t.default_consumables||[]).forEach(function(cid){var c=S.cons.find(function(x){return x.id===cid});if(c)formLines.push({_i:lineCounter++,line_type:'consumable',catalog_ref:cid,designation:c.designation,qty:m2?Math.ceil(m2*c.conso_m2*10)/10:0,unit:c.unit,prix_unit:c.prix_litre,tva_rate:ent.tva_rate||0})});
+  renderFormLines();
+}
+
+function calcTotals(){
+  var eid=$v('f-ent');var ent=S.ents.find(function(e){return e.id===eid})||{tva_rate:0};
+  var ht=0,tva=0;formLines.forEach(function(l){var a=l.qty*l.prix_unit;ht+=a;tva+=a*(l.tva_rate/100)});
+  var h='<div style="font-size:13px">Total HT : <b class="mono">'+fEuro(ht)+'<\/b><\/div>';
+  if(ent.tva_rate>0)h+='<div style="font-size:13px">TVA '+ent.tva_rate+'% : <b class="mono">'+fEuro(tva)+'<\/b><\/div>';
+  h+='<div style="font-size:17px;font-weight:700;margin-top:4px">Total TTC : <span class="mono">'+fEuro(ht+tva)+'<\/span><\/div>';
+  if(ent.tva_mention)h+='<div style="font-size:10px;color:var(--text3);margin-top:3px">'+esc(ent.tva_mention)+'<\/div>';
+  if($('f-totals'))$('f-totals').innerHTML=h;
+}
+
+async function saveDevis(draft){
+  var cn=$v('f-cn');if(!cn){alert('Nom du client requis');return}
+  var eid=$v('f-ent');var ent=S.ents.find(function(e){return e.id===eid})||{};
+  var ht=0,tva=0;formLines.forEach(function(l){var a=l.qty*l.prix_unit;ht+=a;tva+=a*(l.tva_rate/100)});
+  var dd={entity_id:eid,client_name:cn,client_address:$v('f-ca'),client_postal:$v('f-cp'),client_city:$v('f-cc'),
+    delivery_address:$v('f-da'),delivery_postal:$v('f-dp'),delivery_city:$v('f-dc'),
+    delivery_lat:parseFloat($v('f-dlat'))||null,delivery_lng:parseFloat($v('f-dlng'))||null,
+    title:$v('f-title'),description:$v('f-desc'),surface_m2:parseFloat($v('f-m2'))||0,validity_days:parseInt($v('f-vd'))||30,
+    total_ht:ht,total_tva:tva,total_ttc:ht+tva,status:draft?'draft':'sent'};
+  var ld=formLines.map(function(l){return{line_type:l.line_type,catalog_ref:l.catalog_ref||null,designation:l.designation,qty:l.qty,unit:l.unit,prix_unit:l.prix_unit,tva_rate:l.tva_rate,surface_m2:l.surface_m2||null}});
+
+  if(window._editId){
+    await sb.from('devis').update(dd).eq('id',window._editId);
+    await sb.from('devis_lines').delete().eq('devis_id',window._editId);
+    if(ld.length)await sb.from('devis_lines').insert(ld.map(function(l,i){return Object.assign({devis_id:window._editId,sort_order:i},l)}));
+  }else{
+    var r=await sb.rpc('get_next_devis_number',{p_entity_id:eid});
+    dd.number=r.data;
+    var ins=await sb.from('devis').insert(dd).select().single();
+    if(ins.data&&ld.length)await sb.from('devis_lines').insert(ld.map(function(l,i){return Object.assign({devis_id:ins.data.id,sort_order:i},l)}));
+  }
+  closeModal();await loadAll();render();toast(window._editId?'Mis à jour':'Devis créé');
+}
+
+// ================================================================
+// SCHEDULE
+// ================================================================
+function openSchedule(id){
+  var d=S.devis.find(function(x){return x.id===id});if(!d)return;
+  var body='<div class="fg"><label class="fl">Date d\'intervention<\/label><input class="fi" type="date" id="s-date" value="'+(d.intervention_date||'')+'"><\/div>'
+    +'<div class="fg"><label class="fl">Notes<\/label><textarea class="ft" id="s-notes">'+(d.intervention_notes||'')+'<\/textarea><\/div>';
+  var foot='<button class="btn btn-o" onclick="closeModal()">Annuler<\/button> <button class="btn btn-p" onclick="doSchedule(\''+id+'\')">Planifier<\/button>';
+  closeModal();showModal('Planifier — '+d.client_name,body,foot);
+}
+async function doSchedule(id){
+  var dt=$v('s-date');if(!dt){alert('Date requise');return}
+  await sb.from('devis').update({intervention_date:dt,intervention_notes:$v('s-notes'),status:'scheduled'}).eq('id',id);
+  closeModal();await loadAll();render();toast('Planifié');
+}
+
+// ================================================================
+// CATALOG FORM
+// ================================================================
+function openCatForm(type,id){
+  var item=null;
+  if(id&&type==='service')item=S.svcs.find(function(s){return s.id===id});
+  if(id&&type==='consumable')item=S.cons.find(function(c){return c.id===id});
+  var body='<div class="fg"><label class="fl">Désignation<\/label><input class="fi" id="c-des" value="'+esc(item?item.designation:'')+'"><\/div>';
+  if(type==='service')body+='<div class="form-r"><div class="fg"><label class="fl">Prix/m²<\/label><input class="fi" type="number" step="0.01" id="c-pm" value="'+(item?item.prix_m2:'')+'"><\/div><div class="fg"><label class="fl">Catégorie<\/label><input class="fi" id="c-cat" value="'+esc(item?item.category:'')+'"><\/div><\/div>';
+  else body+='<div class="form-r3"><div class="fg"><label class="fl">Prix/L<\/label><input class="fi" type="number" step="0.01" id="c-pl" value="'+(item?item.prix_litre:'')+'"><\/div><div class="fg"><label class="fl">Conso/m²<\/label><input class="fi" type="number" step="0.001" id="c-cm" value="'+(item?item.conso_m2:'')+'"><\/div><div class="fg"><label class="fl">Unité<\/label><input class="fi" id="c-un" value="'+esc(item?item.unit:'litres')+'"><\/div><\/div>';
+  var foot='<button class="btn btn-o" onclick="closeModal()">Annuler<\/button> <button class="btn btn-p" onclick="saveCat(\''+type+'\',\''+(id||'')+'\')">OK<\/button>';
+  showModal(id?'Modifier':'Nouveau '+type,body,foot);
+}
+async function saveCat(type,id){
+  if(type==='service'){
+    var d={designation:$v('c-des'),prix_m2:parseFloat($v('c-pm'))||0,category:$v('c-cat')};
+    if(id)await sb.from('services').update(d).eq('id',id);else await sb.from('services').insert(d);
+  }else{
+    var d={designation:$v('c-des'),prix_litre:parseFloat($v('c-pl'))||0,conso_m2:parseFloat($v('c-cm'))||0,unit:$v('c-un')};
+    if(id)await sb.from('consumables').update(d).eq('id',id);else await sb.from('consumables').insert(d);
+  }
+  closeModal();await loadAll();render();toast('OK');
+}
+
+// ================================================================
+// TEMPLATE FORM
+// ================================================================
+function openTplForm(id){
+  var t=id?S.tpls.find(function(x){return x.id===id}):{};
+  var svcBtns='';S.svcs.forEach(function(s){svcBtns+='<span class="tpl-btn" id="ts-'+s.id+'" onclick="togTplSvc(\''+s.id+'\')" style="'+(t.default_services&&t.default_services.indexOf(s.id)>=0?'background:var(--pri);color:#fff;border-color:var(--pri)':'')+'">'+esc(s.designation)+'<\/span>'});
+  var conBtns='';S.cons.forEach(function(c){conBtns+='<span class="tpl-btn" id="tc-'+c.id+'" onclick="togTplCon(\''+c.id+'\')" style="'+(t.default_consumables&&t.default_consumables.indexOf(c.id)>=0?'background:var(--warn);color:#fff;border-color:var(--warn)':'')+'">'+esc(c.designation)+'<\/span>'});
+  window._tplSvcs=(t.default_services||[]).slice();
+  window._tplCons=(t.default_consumables||[]).slice();
+
+  var body='<div class="form-r"><div class="fg"><label class="fl">Nom *<\/label><input class="fi" id="t-nm" value="'+esc(t.name||'')+'"><\/div><div class="fg"><label class="fl">Catégorie<\/label><input class="fi" id="t-cat" value="'+esc(t.category||'')+'"><\/div><\/div>'
+    +'<div class="fg"><label class="fl">Intitulé pré-rempli<\/label><input class="fi" id="t-ti" value="'+esc(t.title||'')+'"><\/div>'
+    +'<div class="fg"><label class="fl">Déroulé *<\/label><textarea class="ft" id="t-desc" rows="8">'+esc(t.description||'')+'<\/textarea><\/div>'
+    +'<div class="sect">Prestations par défaut<\/div><div>'+svcBtns+'<\/div>'
+    +'<div class="sect">Consommables par défaut<\/div><div>'+conBtns+'<\/div>';
+  var foot='<button class="btn btn-o" onclick="closeModal()">Annuler<\/button> <button class="btn btn-p" onclick="saveTpl(\''+(id||'')+'\')">OK<\/button>';
+  showModal(id?'Modifier modèle':'Nouveau modèle',body,foot,true);
+}
+function togTplSvc(id){var a=window._tplSvcs;var i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.push(id);
+  var el=$('ts-'+id);if(el)el.style.cssText=a.indexOf(id)>=0?'background:var(--pri);color:#fff;border-color:var(--pri)':''}
+function togTplCon(id){var a=window._tplCons;var i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.push(id);
+  var el=$('tc-'+id);if(el)el.style.cssText=a.indexOf(id)>=0?'background:var(--warn);color:#fff;border-color:var(--warn)':''}
+async function saveTpl(id){
+  var d={name:$v('t-nm'),category:$v('t-cat'),title:$v('t-ti'),description:$v('t-desc'),default_services:window._tplSvcs,default_consumables:window._tplCons};
+  if(!d.name||!d.description){alert('Nom et description requis');return}
+  if(id)await sb.from('templates').update(d).eq('id',id);else await sb.from('templates').insert(d);
+  closeModal();await loadAll();render();toast('OK');
+}
+
+// ================================================================
+// PDF — Fidèle aux modèles de devis Drone85 / Du Sol au Clocher
+// ================================================================
+var logos={};
+async function loadLogos(){
+  var r=await sb.from('entity_logos').select('*');
+  if(r.data)r.data.forEach(function(l){logos[l.entity_id]=l.logo_base64});
+}
+
+function dlPDF(){
+  var d=window._pdfD,ent=window._pdfE,lines=window._pdfL;if(!d)return;
+  var doc=new jspdf.jsPDF('p','mm','a4');
+  var W=210,m=15,cW=W-m*2;var y=m;
+  var hex=function(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]};
+  var rgb=hex(ent.color||'#3B5BDB');
+
+  // --- LOGO ---
+  var logoB64=logos[ent.id];
+  if(logoB64){
+    try{doc.addImage('data:image/png;base64,'+logoB64,'PNG',m,y,40,25);y+=30;}catch(e){y+=5;}
+  }
+
+  // --- ENTITÉ (gauche) ---
+  var ey=y;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text(ent.legal_name||'',m,y);y+=4;
+  doc.text(ent.address||'',m,y);y+=4;
+  doc.text((ent.postal_code||'')+' '+(ent.city||''),m,y);y+=4;
+  doc.text(ent.country||'FR',m,y);y+=6;
+
+  // --- CLIENT (droite) ---
+  var cx=W-m;var cy=ey;
+  doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
+  doc.text(d.client_name||'',cx,cy,{align:'right'});cy+=4.5;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  if(d.client_address){doc.text(d.client_address,cx,cy,{align:'right'});cy+=4}
+  doc.text((d.client_postal||'')+' '+(d.client_city||''),cx,cy,{align:'right'});cy+=4;
+  doc.text('France',cx,cy,{align:'right'});cy+=4;
+
+  y=Math.max(y,cy)+2;
+
+  // --- ADRESSE DE LIVRAISON ---
+  if(d.delivery_address){
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
+    doc.text('Adresse de livraison',m,y);y+=4;
+    doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+    if(d.client_name)doc.text(d.client_name,m,y);y+=4;
+    doc.text(d.delivery_address,m,y);y+=4;
+    doc.text((d.delivery_postal||'')+' '+(d.delivery_city||''),m,y);y+=4;
+    doc.text('France',m,y);y+=6;
+  }
+
+  // --- DEVIS N° + TITRE ---
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
+  doc.text('Devis N\u00B0 '+d.number,m,y);y+=5;
+  doc.setFontSize(10);doc.setFont('helvetica','italic');doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+  if(d.title){doc.text(d.title,m,y);y+=5}
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Date d\u2019\u00E9mission : '+fDate(d.created_at),m,y);
+  doc.text('P\u00E9riode de validit\u00E9 : '+(d.validity_days||60)+' jours',W/2+10,y);
+  y+=8;
+
+  // --- DESCRIPTION ---
+  if(d.description){
+    doc.setFontSize(9);doc.setTextColor(60,60,60);
+    var dl=doc.splitTextToSize(d.description,cW);
+    doc.text(dl,m,y);y+=dl.length*3.8+4;
+  }
+
+  // --- TABLEAU ---
+  var tl=(lines||[]).map(function(l){
+    var isProduct=l.line_type==='product';
+    return[
+      l.designation,
+      Number(l.qty).toLocaleString('fr-FR',{minimumFractionDigits:2}),
+      isProduct?(l.unit||'L'):l.unit||'',
+      Number(l.prix_unit).toFixed(2).replace('.',','),
+      l.tva_rate+'%',
+      Number(l.qty*l.prix_unit).toLocaleString('fr-FR',{minimumFractionDigits:2})
+    ];
+  });
+  doc.autoTable({
+    startY:y,margin:{left:m,right:m},
+    head:[['D\u00E9signation','Quantit\u00E9','Unit\u00E9','Prix unitaire','TVA','Montant HT']],
+    body:tl,theme:'grid',
+    headStyles:{fillColor:rgb,textColor:255,fontSize:8,fontStyle:'bold',halign:'center',cellPadding:3},
+    bodyStyles:{fontSize:8.5,cellPadding:3,textColor:[40,40,40]},
+    columnStyles:{
+      0:{cellWidth:'auto',halign:'left'},
+      1:{cellWidth:22,halign:'right'},
+      2:{cellWidth:16,halign:'center'},
+      3:{cellWidth:22,halign:'right'},
+      4:{cellWidth:14,halign:'center'},
+      5:{cellWidth:28,halign:'right',fontStyle:'bold'}
+    },
+    alternateRowStyles:{fillColor:[250,250,250]}
+  });
+  y=doc.lastAutoTable.finalY+8;
+
+  // --- TOTAUX (alignés à droite) ---
+  var tx=130;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+  doc.text('Total HT',tx,y);doc.text(fEuro(d.total_ht),W-m,y,{align:'right'});y+=5;
+  if(d.total_tva>0){
+    // Gérer multi-TVA (10% + 20%)
+    var tvaGroups={};(lines||[]).forEach(function(l){var r=l.tva_rate||0;if(!tvaGroups[r])tvaGroups[r]=0;tvaGroups[r]+=l.qty*l.prix_unit*(r/100)});
+    var rates=Object.keys(tvaGroups).sort();
+    rates.forEach(function(r){
+      if(tvaGroups[r]>0){
+        doc.text('TVA '+r+' %',tx,y);doc.text(fEuro(tvaGroups[r]),W-m,y,{align:'right'});y+=5;
+      }
+    });
+  }
+  doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.setDrawColor(rgb[0],rgb[1],rgb[2]);
+  doc.setFillColor(240,240,245);
+  doc.roundedRect(tx-2,y-4,W-m-tx+2,8,1,1,'F');
+  doc.text('Total TTC',tx,y+1);doc.text(fEuro(d.total_ttc),W-m,y+1,{align:'right'});
+  y+=12;
+
+  // --- MENTION BON POUR ACCORD ---
+  doc.setDrawColor(200,200,200);doc.line(m,y,W-m,y);y+=6;
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Pour \u00EAtre accept\u00E9, le devis doit \u00EAtre dat\u00E9, sign\u00E9 et suivi de la mention manuscrite \u00AB Bon pour accord \u00BB.',m,y);
+  y+=8;
+
+  // --- ZONE SIGNATURE (droite) ---
+  var sigX=W-m-45;var sigY=y;
+  doc.setDrawColor(180,180,180);
+  doc.rect(sigX,sigY,45,25);
+  doc.setFontSize(8);doc.setTextColor(120,120,120);
+  doc.text('Signature',sigX+45,sigY+29,{align:'right'});
+
+  // --- PIED DE PAGE ---
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);
+  var fy=280;
+  var legalLine='SIREN '+(ent.siren||'');
+  if(ent.naf)legalLine+=' - NAF '+ent.naf;
+  if(ent.rcs)legalLine+=' - RCS '+ent.rcs;
+  doc.text(legalLine,W/2,fy,{align:'center'});fy+=4;
+  if(ent.tva_intra){doc.text('TVA intracommunautaire : '+ent.tva_intra,W/2,fy,{align:'center'});fy+=4}
+  if(ent.tva_mention){doc.text(ent.tva_mention,W/2,fy,{align:'center'});fy+=4}
+  if(ent.iban){doc.text('IBAN: '+ent.iban+' - BIC: '+ent.bic,W/2,fy,{align:'center'});fy+=4}
+  doc.text('Page 1/1',W/2,293,{align:'center'});
+
+  doc.save('Devis_'+String(d.number).padStart(6,'0')+'_'+(ent.id==='drone85'?'DRONE85':'VANESSA_BOISSEAU_EI')+'_'+(d.client_name||'').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
+}
+
+// ================================================================
+// INIT
+// ================================================================
+async function init(){
+  try{
+    var sess=await sb.auth.getSession();
+    if(sess.data.session){
+      S.user=sess.data.session.user;
+      await loadAll();
+      await loadLogos();
+    }
+    render();
+  }catch(e){
+    document.getElementById('app').innerHTML='<div style="padding:40px;font-family:sans-serif"><h2 style="color:red">Erreur<\/h2><pre style="background:#FFE3E3;padding:20px;border-radius:8px">'+e.message+'<\/pre><\/div>';
+  }
+}
+init();
+</script>
+</body>
+</html>
